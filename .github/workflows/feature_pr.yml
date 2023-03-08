@@ -1,0 +1,36 @@
+name: Feature PR
+
+on:
+  pull_request:
+    branches:
+      - 'feature/*'
+
+jobs:
+  run-apex-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Salesforce CLI
+        uses: sfdx/actions/setup-salesforce-cli@v1
+        with:
+          version: 'latest'
+
+      - name: Create scratch org
+        run: sfdx force:org:create -s -f config/dev.json -d 1 -a devOrg
+
+      - name: Get package dependencies
+        id: get_dependencies
+        run: |
+          echo "Getting package dependencies..."
+          DEPENDENCIES=$(jq -r '.packageDirectories[0].dependencies[]?.subscriberPackageVersionId' sfdx-project.json | tr '\n' ',')
+          echo "::set-output name=dependencies::$DEPENDENCIES"
+
+      - name: Install dependent packages
+        run: sfdx force:package:install --wait 10 --publishwait 10 --package ${{ steps.get_dependencies.outputs.dependencies }} -u devOrg
+
+      - name: Deploy metadata
+        run: sfdx force:source:push -u devOrg
+
+      - name: Run apex tests
+        run: sfdx force:apex:test:run -w 10 -u devOrg
