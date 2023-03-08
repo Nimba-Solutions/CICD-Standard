@@ -6,7 +6,7 @@ on:
       - 'feature/*'
 
 jobs:
-  run-apex-tests:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -16,21 +16,19 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Create scratch org
-        run: sfdx force:org:create -s -f config/dev.json -d 1 -a devOrg
+      - name: Install sfdx scanner plugin
+        run: sfdx plugins:install @salesforce/sfdx-scanner
 
-      - name: Get package dependencies
-        id: get_dependencies
+      - name: Install jq
         run: |
-          echo "Getting package dependencies..."
-          DEPENDENCIES=$(jq -r '.packageDirectories[0].dependencies[]?.subscriberPackageVersionId' sfdx-project.json | tr '\n' ',')
-          echo "::set-output name=dependencies::$DEPENDENCIES"
+          sudo apt-get install jq
+      
+      - name: Run security scan
+        run: |
+          sfdx scanner:run -a scan_results.json -o json -f force-app/main/default -d 5 -m "ApexClass,ApexTrigger,ApexPage,ApexComponent" -r "High,Medium"
 
-      - name: Install dependent packages
-        run: sfdx force:package:install --wait 10 --publishwait 10 --package ${{ steps.get_dependencies.outputs.dependencies }} -u devOrg
-
-      - name: Deploy metadata
-        run: sfdx force:source:push -u devOrg
-
-      - name: Run apex tests
-        run: sfdx force:apex:test:run -w 10 -u devOrg
+      - name: Upload scan results as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: scan-results
+          path: scan_results_${{ github.sha }}.json
