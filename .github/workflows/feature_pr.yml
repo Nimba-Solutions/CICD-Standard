@@ -10,25 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install Salesforce CLI
-        uses: sfdx/actions/setup-salesforce-cli@v1
         with:
-          version: 'latest'
-
-      - name: Install sfdx scanner plugin
-        run: sfdx plugins:install @salesforce/sfdx-scanner
-
-      - name: Install jq
+          fetch-depth: 0
+      - name: Install SFDX CLI and Scanner
         run: |
-          sudo apt-get install jq
-      
-      - name: Run security scan
-        run: |
-          sfdx scanner:run -a scan_results.json -o json -f force-app/main/default -d 5 -m "ApexClass,ApexTrigger,ApexPage,ApexComponent" -r "High,Medium"
-
-      - name: Upload scan results as artifact
-        uses: actions/upload-artifact@v2
+          npm install sfdx-cli
+          node_modules/sfdx-cli/bin/run plugins:install @salesforce/sfdx-scanner
+      - name: Run SFDX Scanner - Report findings as comments
+        uses: mitchspano/sfdx-scan-pull-request@v0.1.7
         with:
-          name: scan-results
-          path: scan_results_${{ github.sha }}.json
+          severity-threshold: 4
+          strictly-enforced-rules: '[{ "engine": "pmd", "category": "Performance", "rule": "AvoidDebugStatements" }]'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
