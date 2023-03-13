@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      
+      - name: Set up Node.js 16.x (sfdx:scanner dependency)
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16.x'
 
       - name: Install Salesforce CLI
         run: |
