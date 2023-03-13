@@ -9,6 +9,7 @@ public with sharing class AccountDomain {
             acc.Name = newName;
             acc.Phone = newPhone;
             update acc;
+            system.debug('Account Updated!');
         }
     }
     
