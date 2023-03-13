@@ -1,0 +1,34 @@
+name: Feature PR
+
+on:
+  pull_request:
+    branches:
+      - 'feature/*'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Salesforce CLI
+        uses: sfdx/actions/setup-salesforce-cli@v1
+        with:
+          version: 'latest'
+
+      - name: Install sfdx scanner plugin
+        run: sfdx plugins:install @salesforce/sfdx-scanner
+
+      - name: Install jq
+        run: |
+          sudo apt-get install jq
+      
+      - name: Run security scan
+        run: |
+          sfdx scanner:run -a scan_results.json -o json -f force-app/main/default -d 5 -m "ApexClass,ApexTrigger,ApexPage,ApexComponent" -r "High,Medium"
+
+      - name: Upload scan results as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: scan-results
+          path: scan_results_${{ github.sha }}.json
