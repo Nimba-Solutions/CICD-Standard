@@ -12,9 +12,11 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Salesforce CLI
-        uses: sfdx/actions/setup-salesforce-cli@v1
-        with:
-          version: 'latest'
+        run: |
+          wget https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz
+          mkdir sfdx-cli
+          tar xJf sfdx-linux-amd64.tar.xz -C sfdx-cli --strip-components 1
+          sudo ./sfdx-cli/install
 
       - name: Install sfdx scanner plugin
         run: sfdx plugins:install @salesforce/sfdx-scanner
